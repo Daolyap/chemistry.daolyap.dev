@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemistry Structural Formula Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Chemistry Structural Formula Editor</h1>
+            <p class="subtitle">Create, edit, and export structural formulas with ease</p>
+        </header>
+        
+        <div class="toolbar">
+            <div class="tool-section">
+                <h3>Tools</h3>
+                <button class="tool-btn active" data-tool="atom" title="Add Atom">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="8" fill="currentColor"/>
+                    </svg>
+                    Atom
+                </button>
+                <button class="tool-btn" data-tool="bond" title="Add Bond">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Bond
+                </button>
+                <button class="tool-btn" data-tool="select" title="Select/Move">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M2 2 L2 18 L8 12 L12 18 L14 17 L10 11 L18 11 Z" fill="currentColor"/>
+                    </svg>
+                    Select
+                </button>
+                <button class="tool-btn" data-tool="delete" title="Delete">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M5 7 L15 7 L14 17 L6 17 Z M7 3 L13 3 L14 5 L6 5 Z" fill="currentColor"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+
+            <div class="tool-section">
+                <h3>Atoms</h3>
+                <div class="atom-buttons">
+                    <button class="atom-btn active" data-atom="C">C</button>
+                    <button class="atom-btn" data-atom="H">H</button>
+                    <button class="atom-btn" data-atom="O">O</button>
+                    <button class="atom-btn" data-atom="N">N</button>
+                    <button class="atom-btn" data-atom="S">S</button>
+                    <button class="atom-btn" data-atom="P">P</button>
+                    <button class="atom-btn" data-atom="F">F</button>
+                    <button class="atom-btn" data-atom="Cl">Cl</button>
+                    <button class="atom-btn" data-atom="Br">Br</button>
+                    <button class="atom-btn" data-atom="I">I</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>Bond Types</h3>
+                <div class="bond-buttons">
+                    <button class="bond-type-btn active" data-bond-type="single" title="Single Bond">
+                        <svg width="30" height="20" viewBox="0 0 30 20">
+                            <line x1="2" y1="10" x2="28" y2="10" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                    <button class="bond-type-btn" data-bond-type="double" title="Double Bond">
+                        <svg width="30" height="20" viewBox="0 0 30 20">
+                            <line x1="2" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="2"/>
+                            <line x1="2" y1="13" x2="28" y2="13" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                    <button class="bond-type-btn" data-bond-type="triple" title="Triple Bond">
+                        <svg width="30" height="20" viewBox="0 0 30 20">
+                            <line x1="2" y1="5" x2="28" y2="5" stroke="currentColor" stroke-width="2"/>
+                            <line x1="2" y1="10" x2="28" y2="10" stroke="currentColor" stroke-width="2"/>
+                            <line x1="2" y1="15" x2="28" y2="15" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                    <button class="bond-type-btn" data-bond-type="wedge" title="Wedge Bond (up)">
+                        <svg width="30" height="20" viewBox="0 0 30 20">
+                            <path d="M2 10 L28 6 L28 14 Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                    <button class="bond-type-btn" data-bond-type="dash" title="Dash Bond (down)">
+                        <svg width="30" height="20" viewBox="0 0 30 20">
+                            <line x1="2" y1="10" x2="8" y2="10" stroke="currentColor" stroke-width="2"/>
+                            <line x1="10" y1="10" x2="14" y2="10" stroke="currentColor" stroke-width="2"/>
+                            <line x1="16" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="2"/>
+                            <line x1="22" y1="10" x2="28" y2="10" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>Functional Groups</h3>
+                <div class="functional-group-buttons">
+                    <button class="fg-btn" data-group="OH">-OH</button>
+                    <button class="fg-btn" data-group="NH2">-NH₂</button>
+                    <button class="fg-btn" data-group="COOH">-COOH</button>
+                    <button class="fg-btn" data-group="CHO">-CHO</button>
+                    <button class="fg-btn" data-group="CH3">-CH₃</button>
+                    <button class="fg-btn" data-group="NO2">-NO₂</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>Actions</h3>
+                <button class="action-btn" id="clearBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <line x1="6" y1="6" x2="14" y2="14" stroke="currentColor" stroke-width="2"/>
+                        <line x1="14" y1="6" x2="6" y2="14" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Clear All
+                </button>
+                <button class="action-btn" id="copyBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="3" y="3" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <rect x="6" y="6" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Copy Image
+                </button>
+                <button class="action-btn" id="downloadBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M10 2 L10 12 M6 9 L10 13 L14 9 M3 15 L17 15 L17 18 L3 18 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Download PNG
+                </button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="1200" height="800"></canvas>
+            <div class="canvas-info">
+                <span id="coordsDisplay">X: 0, Y: 0</span>
+                <span id="statusDisplay">Ready</span>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>How to Use:</h3>
+            <ul>
+                <li><strong>Add Atoms:</strong> Select "Atom" tool, choose an element, and click on the canvas</li>
+                <li><strong>Add Bonds:</strong> Select "Bond" tool, choose bond type, click on first atom, then click on second atom</li>
+                <li><strong>Add Functional Groups:</strong> Click a functional group button, then click on an atom to attach it</li>
+                <li><strong>Move:</strong> Select "Select" tool, then drag atoms to reposition them (bonds follow automatically)</li>
+                <li><strong>Delete:</strong> Select "Delete" tool, then click on atoms or bonds to remove them</li>
+                <li><strong>Copy:</strong> Click "Copy Image" to copy the diagram to clipboard for pasting into Word, PowerPoint, etc.</li>
+                <li><strong>Download:</strong> Click "Download PNG" to save the diagram as an image file</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
