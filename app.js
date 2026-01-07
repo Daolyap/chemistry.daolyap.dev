@@ -461,24 +461,50 @@ class ChemistryEditor {
     }
     
     clearAll() {
-        if (confirm('Are you sure you want to clear all atoms and bonds?')) {
+        // Use a custom confirmation to provide better UX
+        const shouldClear = this.atoms.length === 0 || confirm('Are you sure you want to clear all atoms and bonds?');
+        if (shouldClear) {
             this.atoms = [];
             this.bonds = [];
             this.render();
             this.updateStatus('Canvas cleared');
+            if (this.atoms.length > 0 || this.bonds.length > 0) {
+                this.showNotification('Canvas cleared successfully!');
+            }
         }
     }
     
     async copyToClipboard() {
+        // Check for Clipboard API support
+        if (!navigator.clipboard || !navigator.clipboard.write) {
+            this.showNotification('Clipboard API not supported. Please use Download PNG instead.', 'error');
+            this.updateStatus('Clipboard not supported - use Download');
+            return;
+        }
+        
         try {
             const blob = await new Promise(resolve => this.canvas.toBlob(resolve, 'image/png'));
+            if (!blob) {
+                throw new Error('Failed to create image blob');
+            }
+            
             await navigator.clipboard.write([
                 new ClipboardItem({ 'image/png': blob })
             ]);
             this.showNotification('Image copied to clipboard! You can now paste it into Word, PowerPoint, etc.');
             this.updateStatus('Image copied to clipboard');
         } catch (err) {
-            this.showNotification('Failed to copy image. Please use Download instead.', 'error');
+            // Provide helpful error messages based on the error type
+            let errorMessage = 'Failed to copy image. ';
+            if (err.name === 'NotAllowedError') {
+                errorMessage += 'Please ensure the page has clipboard permissions.';
+            } else if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                errorMessage += 'Clipboard access requires HTTPS. Please use Download PNG instead.';
+            } else {
+                errorMessage += 'Please use Download PNG instead.';
+            }
+            this.showNotification(errorMessage, 'error');
+            this.updateStatus('Copy failed - use Download');
             console.error('Copy failed:', err);
         }
     }
