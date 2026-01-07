@@ -461,8 +461,9 @@ class ChemistryEditor {
     }
     
     clearAll() {
-        // Use a custom confirmation to provide better UX
+        // Check if there's content to clear
         const hasContent = this.atoms.length > 0 || this.bonds.length > 0;
+        // Use native confirm for simplicity - could be replaced with custom modal in future
         const shouldClear = !hasContent || confirm('Are you sure you want to clear all atoms and bonds?');
         if (shouldClear) {
             this.atoms = [];
@@ -742,9 +743,19 @@ class ChemistryEditor {
     }
     
     darkenColor(color) {
-        // Simple color darkening for borders
+        // Handle hex colors for atom borders - all colors from getAtomColor are hex
+        if (!color || !color.startsWith('#')) {
+            return '#000000'; // Fallback to black
+        }
+        
         const hex = color.replace('#', '');
         const num = parseInt(hex, 16);
+        
+        // Check if the parse was successful
+        if (isNaN(num)) {
+            return '#000000'; // Fallback to black
+        }
+        
         const r = Math.max(0, ((num >> 16) & 255) - 40);
         const g = Math.max(0, ((num >> 8) & 255) - 40);
         const b = Math.max(0, (num & 255) - 40);
