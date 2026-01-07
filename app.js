@@ -1050,12 +1050,12 @@ class ChemistryEditor {
         this.ctx.fillStyle = '#ffffff';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Draw grid (subtle)
-        this.drawGrid();
-        
-        // Apply zoom
+        // Apply zoom for all content including grid
         this.ctx.save();
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
+        
+        // Draw grid (subtle) - now inside zoom context
+        this.drawGrid();
         
         // Draw bonds
         this.bonds.forEach(bond => {
@@ -1092,21 +1092,25 @@ class ChemistryEditor {
         const gridSize = 50;
         this.ctx.save();
         this.ctx.strokeStyle = '#e8e8e8';
-        this.ctx.lineWidth = 0.5;
+        this.ctx.lineWidth = 0.5 / this.zoomLevel; // Maintain consistent line width when zoomed
+        
+        // Calculate grid extent based on canvas size and zoom
+        const width = this.canvas.width / this.zoomLevel;
+        const height = this.canvas.height / this.zoomLevel;
         
         // Vertical lines
-        for (let x = 0; x < this.canvas.width; x += gridSize) {
+        for (let x = 0; x < width; x += gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.lineTo(x, height);
             this.ctx.stroke();
         }
         
         // Horizontal lines
-        for (let y = 0; y < this.canvas.height; y += gridSize) {
+        for (let y = 0; y < height; y += gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(0, y);
-            this.ctx.lineTo(this.canvas.width, y);
+            this.ctx.lineTo(width, y);
             this.ctx.stroke();
         }
         
