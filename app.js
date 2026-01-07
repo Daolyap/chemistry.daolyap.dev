@@ -462,13 +462,14 @@ class ChemistryEditor {
     
     clearAll() {
         // Use a custom confirmation to provide better UX
-        const shouldClear = this.atoms.length === 0 || confirm('Are you sure you want to clear all atoms and bonds?');
+        const hasContent = this.atoms.length > 0 || this.bonds.length > 0;
+        const shouldClear = !hasContent || confirm('Are you sure you want to clear all atoms and bonds?');
         if (shouldClear) {
             this.atoms = [];
             this.bonds = [];
             this.render();
             this.updateStatus('Canvas cleared');
-            if (this.atoms.length > 0 || this.bonds.length > 0) {
+            if (hasContent) {
                 this.showNotification('Canvas cleared successfully!');
             }
         }
@@ -529,7 +530,9 @@ class ChemistryEditor {
         document.body.appendChild(notification);
         
         setTimeout(() => {
-            notification.style.animation = 'slideIn 0.3s ease-out reverse';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(400px)';
+            notification.style.transition = 'all 0.3s ease-out';
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
