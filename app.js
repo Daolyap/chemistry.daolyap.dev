@@ -36,6 +36,7 @@ class ChemistryEditor {
         this.fontSize = 16;
         this.snapBonds = false; // Bond snapping mode
         this.snapAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330]; // Snap to these angles in degrees
+        this.exportPadding = 40; // Padding around content for export
         
         this.initializeEventListeners();
         this.saveState(); // Save initial state
@@ -455,17 +456,21 @@ class ChemistryEditor {
             return { x: toX, y: toY }; // Too close, don't snap
         }
         
-        // Calculate angle in degrees
+        // Calculate angle in degrees (normalize to 0-360)
         let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angle < 0) angle += 360;
         
-        // Find nearest snap angle
+        // Find nearest snap angle, accounting for circular nature of angles
         let nearestAngle = this.snapAngles[0];
-        let minDiff = Math.abs(angle - nearestAngle);
+        let minDiff = Math.min(Math.abs(angle - nearestAngle), 360 - Math.abs(angle - nearestAngle));
         
         for (let snapAngle of this.snapAngles) {
+            // Calculate circular difference
             const diff = Math.abs(angle - snapAngle);
-            if (diff < minDiff) {
-                minDiff = diff;
+            const circularDiff = Math.min(diff, 360 - diff);
+            
+            if (circularDiff < minDiff) {
+                minDiff = circularDiff;
                 nearestAngle = snapAngle;
             }
         }
@@ -883,7 +888,6 @@ class ChemistryEditor {
             return { minX: 0, minY: 0, maxX: this.canvas.width, maxY: this.canvas.height };
         }
         
-        const padding = 40; // Add some padding around the content
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         
         this.atoms.forEach(atom => {
@@ -894,10 +898,10 @@ class ChemistryEditor {
         });
         
         return {
-            minX: Math.max(0, minX - padding),
-            minY: Math.max(0, minY - padding),
-            maxX: Math.min(this.canvas.width, maxX + padding),
-            maxY: Math.min(this.canvas.height, maxY + padding)
+            minX: Math.max(0, minX - this.exportPadding),
+            minY: Math.max(0, minY - this.exportPadding),
+            maxX: Math.min(this.canvas.width, maxX + this.exportPadding),
+            maxY: Math.min(this.canvas.height, maxY + this.exportPadding)
         };
     }
     
