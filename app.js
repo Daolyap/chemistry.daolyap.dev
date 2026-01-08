@@ -34,6 +34,8 @@ class ChemistryEditor {
         this.atomRadius = 20;
         this.bondLength = 60;
         this.fontSize = 16;
+        this.snapBonds = false; // Bond snapping mode
+        this.snapAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330]; // Snap to these angles in degrees
         
         this.initializeEventListeners();
         this.saveState(); // Save initial state
@@ -110,6 +112,12 @@ class ChemistryEditor {
         document.getElementById('zoomInBtn').addEventListener('click', () => this.zoomIn());
         document.getElementById('zoomOutBtn').addEventListener('click', () => this.zoomOut());
         document.getElementById('zoomResetBtn').addEventListener('click', () => this.zoomReset());
+        
+        // Snap bonds toggle
+        document.getElementById('snapBondsToggle').addEventListener('change', (e) => {
+            this.snapBonds = e.target.checked;
+            this.updateStatus(this.snapBonds ? 'Bond snapping enabled' : 'Bond snapping disabled');
+        });
         
         // Canvas events
         this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
@@ -432,6 +440,44 @@ class ChemistryEditor {
         }
     }
     
+    // Snap position to angles when bond snapping is enabled
+    snapPosition(fromAtom, toX, toY) {
+        if (!this.snapBonds || !fromAtom) {
+            return { x: toX, y: toY };
+        }
+        
+        // Calculate angle from fromAtom to target position
+        const dx = toX - fromAtom.x;
+        const dy = toY - fromAtom.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 5) {
+            return { x: toX, y: toY }; // Too close, don't snap
+        }
+        
+        // Calculate angle in degrees
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        // Find nearest snap angle
+        let nearestAngle = this.snapAngles[0];
+        let minDiff = Math.abs(angle - nearestAngle);
+        
+        for (let snapAngle of this.snapAngles) {
+            const diff = Math.abs(angle - snapAngle);
+            if (diff < minDiff) {
+                minDiff = diff;
+                nearestAngle = snapAngle;
+            }
+        }
+        
+        // Convert back to radians and calculate new position
+        const radians = nearestAngle * Math.PI / 180;
+        return {
+            x: fromAtom.x + distance * Math.cos(radians),
+            y: fromAtom.y + distance * Math.sin(radians)
+        };
+    }
+    
     handleMouseMove(e) {
         const coords = this.getCanvasCoords(e);
         document.getElementById('coordsDisplay').textContent = `X: ${Math.round(coords.x)}, Y: ${Math.round(coords.y)}`;
@@ -441,8 +487,23 @@ class ChemistryEditor {
         
         // Handle dragging
         if (this.draggedAtom && this.currentTool === 'select') {
-            this.draggedAtom.x = coords.x;
-            this.draggedAtom.y = coords.y;
+            // Find if this atom is connected to any other atoms for snapping
+            let snapReference = null;
+            if (this.snapBonds) {
+                // Find a connected atom to use as reference for snapping
+                const connectedBond = this.bonds.find(b => 
+                    b.atom1 === this.draggedAtom.id || b.atom2 === this.draggedAtom.id
+                );
+                if (connectedBond) {
+                    const otherAtomId = connectedBond.atom1 === this.draggedAtom.id ? 
+                        connectedBond.atom2 : connectedBond.atom1;
+                    snapReference = this.atoms[otherAtomId];
+                }
+            }
+            
+            const snappedPos = this.snapPosition(snapReference, coords.x, coords.y);
+            this.draggedAtom.x = snappedPos.x;
+            this.draggedAtom.y = snappedPos.y;
             this.render();
         }
         
@@ -816,6 +877,30 @@ class ChemistryEditor {
         }
     }
     
+    // Calculate the bounds of the actual content
+    getContentBounds() {
+        if (this.atoms.length === 0) {
+            return { minX: 0, minY: 0, maxX: this.canvas.width, maxY: this.canvas.height };
+        }
+        
+        const padding = 40; // Add some padding around the content
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        
+        this.atoms.forEach(atom => {
+            minX = Math.min(minX, atom.x - this.atomRadius);
+            minY = Math.min(minY, atom.y - this.atomRadius);
+            maxX = Math.max(maxX, atom.x + this.atomRadius);
+            maxY = Math.max(maxY, atom.y + this.atomRadius);
+        });
+        
+        return {
+            minX: Math.max(0, minX - padding),
+            minY: Math.max(0, minY - padding),
+            maxX: Math.min(this.canvas.width, maxX + padding),
+            maxY: Math.min(this.canvas.height, maxY + padding)
+        };
+    }
+    
     async copyToClipboard() {
         // Check for Clipboard API support
         if (!navigator.clipboard || !navigator.clipboard.write) {
@@ -824,12 +909,25 @@ class ChemistryEditor {
             return;
         }
         
+        if (this.atoms.length === 0) {
+            this.showNotification('Nothing to copy. Add some atoms first.', 'error');
+            return;
+        }
+        
         try {
-            // Create a temporary canvas with transparent background
+            // Get content bounds
+            const bounds = this.getContentBounds();
+            const width = bounds.maxX - bounds.minX;
+            const height = bounds.maxY - bounds.minY;
+            
+            // Create a temporary canvas with size matching content
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = this.canvas.width;
-            tempCanvas.height = this.canvas.height;
+            tempCanvas.width = width;
+            tempCanvas.height = height;
             const tempCtx = tempCanvas.getContext('2d');
+            
+            // Translate context to account for offset
+            tempCtx.translate(-bounds.minX, -bounds.minY);
             
             // Draw content without background (transparent)
             this.renderToContext(tempCtx, true);
@@ -861,11 +959,24 @@ class ChemistryEditor {
     }
     
     downloadImage() {
-        // Create a temporary canvas with transparent background
+        if (this.atoms.length === 0) {
+            this.showNotification('Nothing to download. Add some atoms first.', 'error');
+            return;
+        }
+        
+        // Get content bounds
+        const bounds = this.getContentBounds();
+        const width = bounds.maxX - bounds.minX;
+        const height = bounds.maxY - bounds.minY;
+        
+        // Create a temporary canvas with size matching content
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.canvas.width;
-        tempCanvas.height = this.canvas.height;
+        tempCanvas.width = width;
+        tempCanvas.height = height;
         const tempCtx = tempCanvas.getContext('2d');
+        
+        // Translate context to account for offset
+        tempCtx.translate(-bounds.minX, -bounds.minY);
         
         // Draw content without background (transparent)
         this.renderToContext(tempCtx, true);
@@ -903,6 +1014,8 @@ class ChemistryEditor {
     drawAtomToContext(ctx, atom, isHovered = false) {
         ctx.save();
         
+        const isText = this.isTextElement(atom.element);
+        
         // Highlight if hovered (only for main canvas)
         if (isHovered) {
             ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
@@ -911,23 +1024,32 @@ class ChemistryEditor {
             ctx.fill();
         }
         
-        // Draw atom circle
-        ctx.fillStyle = this.getAtomColor(atom.element);
-        ctx.beginPath();
-        ctx.arc(atom.x, atom.y, this.atomRadius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Draw border
-        ctx.strokeStyle = this.darkenColor(this.getAtomColor(atom.element));
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        // Draw element symbol
-        ctx.fillStyle = 'white';
-        ctx.font = `bold ${this.fontSize}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(atom.element, atom.x, atom.y);
+        if (isText) {
+            // For text elements, just draw the text without a circle
+            ctx.fillStyle = '#333333';
+            ctx.font = `bold ${this.fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(atom.element, atom.x, atom.y);
+        } else {
+            // Draw atom circle
+            ctx.fillStyle = this.getAtomColor(atom.element);
+            ctx.beginPath();
+            ctx.arc(atom.x, atom.y, this.atomRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw border
+            ctx.strokeStyle = this.darkenColor(this.getAtomColor(atom.element));
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw element symbol
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${this.fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(atom.element, atom.x, atom.y);
+        }
         
         ctx.restore();
     }
@@ -1120,6 +1242,8 @@ class ChemistryEditor {
     drawAtom(atom, isHovered = false) {
         this.ctx.save();
         
+        const isText = this.isTextElement(atom.element);
+        
         // Highlight if hovered - use accent color for dark theme
         if (isHovered) {
             this.ctx.fillStyle = 'rgba(99, 102, 241, 0.25)';
@@ -1132,27 +1256,39 @@ class ChemistryEditor {
             this.ctx.shadowBlur = 15;
         }
         
-        // Draw atom circle
-        this.ctx.fillStyle = this.getAtomColor(atom.element);
-        this.ctx.beginPath();
-        this.ctx.arc(atom.x, atom.y, this.atomRadius, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Reset shadow for border
-        this.ctx.shadowColor = 'transparent';
-        this.ctx.shadowBlur = 0;
-        
-        // Draw border
-        this.ctx.strokeStyle = this.darkenColor(this.getAtomColor(atom.element));
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-        
-        // Draw element symbol
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = `bold ${this.fontSize}px Arial`;
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(atom.element, atom.x, atom.y);
+        if (isText) {
+            // For text elements, just draw the text without a circle
+            this.ctx.shadowColor = 'transparent';
+            this.ctx.shadowBlur = 0;
+            
+            this.ctx.fillStyle = '#333333';
+            this.ctx.font = `bold ${this.fontSize}px Arial`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(atom.element, atom.x, atom.y);
+        } else {
+            // Draw atom circle
+            this.ctx.fillStyle = this.getAtomColor(atom.element);
+            this.ctx.beginPath();
+            this.ctx.arc(atom.x, atom.y, this.atomRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Reset shadow for border
+            this.ctx.shadowColor = 'transparent';
+            this.ctx.shadowBlur = 0;
+            
+            // Draw border
+            this.ctx.strokeStyle = this.darkenColor(this.getAtomColor(atom.element));
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
+            // Draw element symbol
+            this.ctx.fillStyle = 'white';
+            this.ctx.font = `bold ${this.fontSize}px Arial`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(atom.element, atom.x, atom.y);
+        }
         
         this.ctx.restore();
     }
@@ -1266,6 +1402,11 @@ class ChemistryEditor {
             'I': '#800080'
         };
         return colors[element] || '#888888';
+    }
+    
+    isTextElement(element) {
+        // Check if element is a number or period
+        return /^[0-9.]$/.test(element);
     }
     
     darkenColor(color) {
