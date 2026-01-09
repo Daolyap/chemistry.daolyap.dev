@@ -31,10 +31,12 @@ class ChemistryEditor {
         this.zoomStep = 0.1;
         
         // Settings
-        this.atomRadius = 20;
+        this.atomRadius = 25; // Updated to half of grid cell size (50px)
         this.bondLength = 60;
         this.fontSize = 16;
         this.snapBonds = false; // Bond snapping mode
+        this.snapToGrid = false; // Grid snapping mode
+        this.gridSize = 50; // Grid cell size
         this.snapAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330]; // Snap to these angles in degrees
         this.exportPadding = 40; // Padding around content for export
         
@@ -118,6 +120,19 @@ class ChemistryEditor {
         document.getElementById('snapBondsToggle').addEventListener('change', (e) => {
             this.snapBonds = e.target.checked;
             this.updateStatus(this.snapBonds ? 'Bond snapping enabled' : 'Bond snapping disabled');
+        });
+        
+        // Snap to grid toggle
+        document.getElementById('snapToGridToggle').addEventListener('change', (e) => {
+            this.snapToGrid = e.target.checked;
+            this.updateStatus(this.snapToGrid ? 'Grid snapping enabled' : 'Grid snapping disabled');
+        });
+        
+        // Atom size slider
+        document.getElementById('atomSizeSlider').addEventListener('input', (e) => {
+            this.atomRadius = parseInt(e.target.value);
+            document.getElementById('atomSizeValue').textContent = this.atomRadius;
+            this.render();
         });
         
         // Canvas events
@@ -483,6 +498,18 @@ class ChemistryEditor {
         };
     }
     
+    // Snap coordinates to grid when grid snapping is enabled
+    snapToGridPosition(x, y) {
+        if (!this.snapToGrid) {
+            return { x, y };
+        }
+        
+        return {
+            x: Math.round(x / this.gridSize) * this.gridSize,
+            y: Math.round(y / this.gridSize) * this.gridSize
+        };
+    }
+    
     handleMouseMove(e) {
         const coords = this.getCanvasCoords(e);
         document.getElementById('coordsDisplay').textContent = `X: ${Math.round(coords.x)}, Y: ${Math.round(coords.y)}`;
@@ -492,7 +519,17 @@ class ChemistryEditor {
         
         // Handle dragging
         if (this.draggedAtom && this.currentTool === 'select') {
-            // Find if this atom is connected to any other atoms for snapping
+            let newX = coords.x;
+            let newY = coords.y;
+            
+            // Apply grid snapping if enabled
+            if (this.snapToGrid) {
+                const snapped = this.snapToGridPosition(newX, newY);
+                newX = snapped.x;
+                newY = snapped.y;
+            }
+            
+            // Find if this atom is connected to any other atoms for bond angle snapping
             let snapReference = null;
             if (this.snapBonds) {
                 // Find a connected atom to use as reference for snapping
@@ -506,9 +543,15 @@ class ChemistryEditor {
                 }
             }
             
-            const snappedPos = this.snapPosition(snapReference, coords.x, coords.y);
-            this.draggedAtom.x = snappedPos.x;
-            this.draggedAtom.y = snappedPos.y;
+            // Apply bond angle snapping if enabled and has connected atoms
+            if (snapReference) {
+                const snappedPos = this.snapPosition(snapReference, newX, newY);
+                newX = snappedPos.x;
+                newY = snappedPos.y;
+            }
+            
+            this.draggedAtom.x = newX;
+            this.draggedAtom.y = newY;
             this.render();
         }
         
@@ -530,6 +573,13 @@ class ChemistryEditor {
     }
     
     addAtom(x, y, element = null, skipSave = false) {
+        // Apply grid snapping if enabled
+        if (this.snapToGrid) {
+            const snapped = this.snapToGridPosition(x, y);
+            x = snapped.x;
+            y = snapped.y;
+        }
+        
         const atom = {
             x: x,
             y: y,
@@ -1215,7 +1265,6 @@ class ChemistryEditor {
     }
     
     drawGrid() {
-        const gridSize = 50;
         this.ctx.save();
         this.ctx.strokeStyle = '#e8e8e8';
         this.ctx.lineWidth = 0.5 / this.zoomLevel; // Maintain consistent line width when zoomed
@@ -1225,7 +1274,7 @@ class ChemistryEditor {
         const height = this.canvas.height / this.zoomLevel;
         
         // Vertical lines
-        for (let x = 0; x < width; x += gridSize) {
+        for (let x = 0; x < width; x += this.gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(x, 0);
             this.ctx.lineTo(x, height);
@@ -1233,7 +1282,7 @@ class ChemistryEditor {
         }
         
         // Horizontal lines
-        for (let y = 0; y < height; y += gridSize) {
+        for (let y = 0; y < height; y += this.gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(0, y);
             this.ctx.lineTo(width, y);
