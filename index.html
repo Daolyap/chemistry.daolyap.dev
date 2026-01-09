@@ -33,6 +33,13 @@
                         </svg>
                     </button>
                 </div>
+                <div class="mode-toggle" style="margin-bottom: 8px;">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="snapBondsToggle" />
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">Snap Bonds</span>
+                    </label>
+                </div>
                 <button class="tool-btn active" data-tool="atom" title="Add Atom (A)">
                     <svg width="20" height="20" viewBox="0 0 20 20">
                         <circle cx="10" cy="10" r="8" fill="currentColor"/>
@@ -72,6 +79,16 @@
                     <button class="atom-btn" data-atom="Cl">Cl</button>
                     <button class="atom-btn" data-atom="Br">Br</button>
                     <button class="atom-btn" data-atom="I">I</button>
+                </div>
+                <h3 style="margin-top: 12px;">Text</h3>
+                <div class="atom-buttons">
+                    <button class="atom-btn" data-atom="1">1</button>
+                    <button class="atom-btn" data-atom="2">2</button>
+                    <button class="atom-btn" data-atom="3">3</button>
+                    <button class="atom-btn" data-atom="4">4</button>
+                    <button class="atom-btn" data-atom="5">5</button>
+                    <button class="atom-btn" data-atom="6">6</button>
+                    <button class="atom-btn" data-atom=".">.</button>
                 </div>
             </div>
 
@@ -169,7 +186,7 @@
         </div>
 
         <div class="canvas-container">
-            <canvas id="canvas" width="1200" height="800"></canvas>
+            <canvas id="canvas" width="1200" height="1600"></canvas>
             <div class="canvas-info">
                 <div class="zoom-controls">
                     <button class="zoom-btn" id="zoomOutBtn" title="Zoom Out (-)">
