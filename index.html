@@ -40,6 +40,19 @@
                         <span class="toggle-text">Snap Bonds</span>
                     </label>
                 </div>
+                <div class="mode-toggle" style="margin-bottom: 8px;">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="snapToGridToggle" />
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">Snap to Grid</span>
+                    </label>
+                </div>
+                <div class="size-control" style="margin-bottom: 8px;">
+                    <label class="size-label">
+                        <span class="size-text">Atom Size: <span id="atomSizeValue">25</span>px</span>
+                        <input type="range" id="atomSizeSlider" min="10" max="40" value="25" step="1" />
+                    </label>
+                </div>
                 <button class="tool-btn active" data-tool="atom" title="Add Atom (A)">
                     <svg width="20" height="20" viewBox="0 0 20 20">
                         <circle cx="10" cy="10" r="8" fill="currentColor"/>
